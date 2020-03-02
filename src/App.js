@@ -10,10 +10,12 @@ class App extends Component {
   chainId = 'T'
   web3 = null
   contract = null
+  ercContract = null
+  ethContractAddress = "0xa5D6A24B0E749a3dDe80A27eB49D1398aA9a188a"
   constructor(props) {
     super(props)
     this.state = {
-      wavesSusyContract: "3MLRN3PtLwFkkdSHzj2jcV3nh13Dqvoboeq",
+      wavesSusyContract: "3MNbtsuxNdNrTpAW7JjRFiQogo15fbARXfK",
       wavesSusyContractData: {},
       dataOther: {},
       ethEventsNewRq: []
@@ -23,7 +25,7 @@ class App extends Component {
     if (window.web3) {
       let jsonContract = require('./Supersymmetry.json');
       this.web3 = new Web3(window.web3.currentProvider);
-      this.contract = new this.web3.eth.Contract(jsonContract, "0xDF530386f1073F482F1Aaf8EcE20fffEeE655f36")
+      this.contract = new this.web3.eth.Contract(jsonContract, this.ethContractAddress)
     }
     else {
       alert('You have to install MetaMask !');
@@ -59,18 +61,20 @@ class App extends Component {
 
     let address = this.state.dataOther.address
     
-    let tokenJsonContract = require('./Token.json');
-    let ercToken = await this.contract.methods.tokenAddress().call()
-    let ercContract = new this.web3.eth.Contract(tokenJsonContract, ercToken)
     let ethAccount = (await this.web3.eth.getAccounts())[0]
+    if (this.ercContract == null) {
+      let tokenJsonContract = require('./Token.json');
+      let ercToken = await this.contract.methods.tokenAddress().call()
+      let ercContract = new this.web3.eth.Contract(tokenJsonContract, ercToken)
+      this.ercContract = ercContract
+    }
     let other = {
       address : address,
       ethAccount: ethAccount,
       balance : await nodeInteraction.assetBalance(this.state.wavesSusyContractData.asset_id, address, this.nodeUrl),
-      ethBalance: (await ercContract.methods.balanceOf(ethAccount).call())/10000000000
+      ethBalance: (await this.ercContract.methods.balanceOf(ethAccount).call())/10000000000
     }
     this.setState({ dataOther: other });
-
     let events = await this.contract.getPastEvents('NewRequest', {
       fromBlock: 0,
       toBlock: 'latest'
@@ -180,13 +184,16 @@ class App extends Component {
 
 
       if (status == statusRq) {
+        let amount = this.web3.utils.fromWei(event.tokenAmount)
         requests.push(
           <div id="solid">
             {event.id} | {" "}
             {status} | {" "}
             {type} | { " " }
             {event.target} | { " " }
-            {this.web3.utils.fromWei(event.tokenAmount)} | 
+            {amount} | 
+            {status == "SUCCESS" && type == "BURN" ? 
+                <button type="submit" onClick={() => this.unlock(event.owner, amount)}>Create waves request</button> : ""}
           </div>
         )
       }
@@ -195,6 +202,7 @@ class App extends Component {
     }
     return requests;
   }
+
   testFaucet = async () => {
       await window.WavesKeeper.signAndPublishTransaction({
         type: 16,
@@ -279,7 +287,8 @@ class App extends Component {
       alert("Что-то пошло не так", error);
     });
   }
-  unlock = async () => {
+
+  async unlock(owner, amount) {
     await window.WavesKeeper.signAndPublishTransaction({
       type: 16,
       data: {
@@ -293,11 +302,11 @@ class App extends Component {
                args: [
                 {
                   type: "string",
-                  value: this.state.ethSender
+                  value: owner
                 },
                 {
                   type: "integer",
-                  value: this.state.unlockAmount * this.wvs
+                  value: amount * this.wvs
                 }
               ]
              }, payment: []
@@ -311,9 +320,9 @@ class App extends Component {
   }
 
   burn = async() => {
-    console.log(this.state.burnAmount)
-    console.log(this.web3.utils.toWei(String(this.state.burnAmount), 'ether'))
-    await this.contract.methods.createBurnRequest(this.state.burnRecipient, this.web3.utils.toWei(String(this.state.burnAmount), 'ether')).send({from: this.state.dataOther.ethAccount})
+    let amount = this.web3.utils.toWei(String(this.state.burnAmount, 'ether'))
+    await this.ercContract.methods.approve(this.ethContractAddress, amount).send({from: this.state.dataOther.ethAccount})
+    await this.contract.methods.createBurnRequest(this.state.burnRecipient, amount).send({from: this.state.dataOther.ethAccount})
   }
 
   async mint(owner, amount) {
