@@ -153,6 +153,11 @@
         "type": "address"
       },
       {
+        "internalType": "uint256",
+        "name": "height",
+        "type": "uint256"
+      },
+      {
         "internalType": "string",
         "name": "target",
         "type": "string"

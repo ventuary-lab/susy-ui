@@ -11,11 +11,11 @@ class App extends Component {
   web3 = null
   contract = null
   ercContract = null
-  ethContractAddress = "0xa5D6A24B0E749a3dDe80A27eB49D1398aA9a188a"
+  ethContractAddress = "0xa6cbe6d9EBF6b2F9f48C315f7fBb65Af2C449468"
   constructor(props) {
     super(props)
     this.state = {
-      wavesSusyContract: "3MNbtsuxNdNrTpAW7JjRFiQogo15fbARXfK",
+      wavesSusyContract: "3M2MswfZyGXr2DAo5N1cwfNZweriH8QyauX",
       wavesSusyContractData: {},
       dataOther: {},
       ethEventsNewRq: []
