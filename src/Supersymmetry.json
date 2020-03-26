@@ -5,6 +5,11 @@
         "internalType": "address[5]",
         "name": "newAdmins",
         "type": "address[5]"
+      },
+      {
+        "internalType": "uint8",
+        "name": "newBftCoefficent",
+        "type": "uint8"
       }
     ],
     "payable": false,
@@ -128,6 +133,21 @@
   },
   {
     "constant": true,
+    "inputs": [],
+    "name": "bftCoefficent",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
     "inputs": [
       {
         "internalType": "bytes32",
@@ -235,26 +255,6 @@
         "type": "bytes32"
       }
     ],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "requestHash",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "uint8",
-        "name": "intStatus",
-        "type": "uint8"
-      }
-    ],
-    "name": "changeStatusTest",
-    "outputs": [],
     "payable": false,
     "stateMutability": "nonpayable",
     "type": "function"

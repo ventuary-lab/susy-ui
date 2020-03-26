@@ -5,17 +5,17 @@ import {invokeScript, address, nodeInteraction, broadcast, waitForTx, balance, a
 import Web3 from 'web3';
 
 class App extends Component {
-  nodeUrl =  "http://127.0.0.1:6869"
-  wvs = 100000000
-  chainId = 'T'
+  nodeUrl =  "https://nodes.wavesnodes.com"
+  wvs = 1000000
+  chainId = 'W'
   web3 = null
   contract = null
   ercContract = null
-  ethContractAddress = "0xa6cbe6d9EBF6b2F9f48C315f7fBb65Af2C449468"
+  ethContractAddress = "0x6D8dE1a5384CA68eb525707D9b5b49e63A3e62Ed"
   constructor(props) {
     super(props)
     this.state = {
-      wavesSusyContract: "3M2MswfZyGXr2DAo5N1cwfNZweriH8QyauX",
+      wavesSusyContract: "3PLNtYARHKSspK7q6Ed4KnrMU2x9sD4bzwz",
       wavesSusyContractData: {},
       dataOther: {},
       ethEventsNewRq: []
@@ -72,7 +72,7 @@ class App extends Component {
       address : address,
       ethAccount: ethAccount,
       balance : await nodeInteraction.assetBalance(this.state.wavesSusyContractData.asset_id, address, this.nodeUrl),
-      ethBalance: (await this.ercContract.methods.balanceOf(ethAccount).call())/10000000000
+      ethBalance: (await this.ercContract.methods.balanceOf(ethAccount).call())/1000000000000
     }
     this.setState({ dataOther: other });
     let events = await this.contract.getPastEvents('NewRequest', {
@@ -262,7 +262,7 @@ class App extends Component {
   }
   
   lock = async () => {
-    await window.WavesKeeper.signAndPublishTransaction({
+    let tx = await window.WavesKeeper.signAndPublishTransaction({
       type: 16,
       data: {
            fee: {
@@ -280,15 +280,17 @@ class App extends Component {
               ]
              }, payment: [{assetId: this.state.wavesSusyContractData.asset_id, tokens: this.state.lockAmount }]
       }
-    }).then((tx) => {
-      console.log(tx);
-      this.setState({lastTxHash: JSON.parse(tx).id })
-    }).catch((error) => {
-      alert("Что-то пошло не так", error);
-    });
+    })
+    console.log(tx);
+    let jsonTx = JSON.parse(tx)
+    this.setState({lastTxHash: jsonTx.id })
+    console.log(jsonTx.sender);
+    await this.mint(jsonTx.sender, this.state.lockAmount)
+   
   }
 
   async unlock(owner, amount) {
+    console.log(amount * this.wvs)
     await window.WavesKeeper.signAndPublishTransaction({
       type: 16,
       data: {
@@ -316,6 +318,7 @@ class App extends Component {
       this.setState({lastTxHash: JSON.parse(tx).id })
     }).catch((error) => {
       alert("Что-то пошло не так", error);
+      console.log(error);
     });
   }
 
@@ -323,6 +326,7 @@ class App extends Component {
     let amount = this.web3.utils.toWei(String(this.state.burnAmount, 'ether'))
     await this.ercContract.methods.approve(this.ethContractAddress, amount).send({from: this.state.dataOther.ethAccount})
     await this.contract.methods.createBurnRequest(this.state.burnRecipient, amount).send({from: this.state.dataOther.ethAccount})
+    await this.unlock(this.state.burnRecipient, this.state.burnAmount)
   }
 
   async mint(owner, amount) {
@@ -334,8 +338,8 @@ class App extends Component {
     return (
       <div className="App">
          LastTxHash: {this.state.lastTxHash} | {' '}
-        {this.state.dataOther.balance/this.wvs} Waves Token | {' '}
-        {this.state.dataOther.ethBalance/this.wvs} Ethereum Token | {' '}
+        {this.state.dataOther.balance/this.wvs} USDN | {' '}
+        {this.state.dataOther.ethBalance/this.wvs} sUSDN | {' '}
         <div id="grid">
           <div>
             <h3>Contracts</h3>
@@ -344,63 +348,12 @@ class App extends Component {
               Recipient : <input type="text" value={this.state.ethRecipient} onChange={(event) => this.setState({ ethRecipient: event.target.value })} />
             </label>
             <br/><button type="submit" onClick={this.lock}>Lock</button>
-
+            
             <br/><label>
               Amount : <input type="text" value={this.state.burnAmount} onChange={(event) => this.setState({ burnAmount: event.target.value })} />
               Recipient : <input type="text" value={this.state.burnRecipient} onChange={(event) => this.setState({ burnRecipient: event.target.value })} />
             </label>
             <br/><button type="submit" onClick={this.burn}>Burn</button>
-          </div>
-          <div>
-            <h3>Fauset</h3>
-            <button type="submit" onClick={this.testFaucet}>Get Token</button>
-          </div>
-          <div>
-            <h3>Waves requests</h3>
-            {this.getRequests("NEW")}
-          </div>
-          <div>
-            <h3>Waves request history</h3>
-            {this.getRequests("SUCCESS")}
-          </div>
-          <div>
-            <h3>Ethereum requests</h3>
-            {this.getEthRequests("NEW")}
-          </div>
-          <div>
-            <h3>Ethereum request history</h3>
-            {this.getEthRequests("SUCCESS")}
-          </div>
-          <div>
-              <h3>Waves SUSY validators</h3>
-              Reqest id: <input type="text" value={this.state.wavesRequestId} onChange={(event) => this.setState({ wavesRequestId: event.target.value })} />
-              <div className="radio">
-                  <label>
-                  <input type="radio" checked={this.state.wavesRequestStatus === 3}  onChange={() => this.setState({ wavesRequestStatus: 3 })}/>
-                    Accept
-                  </label>
-                   <label>
-                   <input type="radio" checked={this.state.wavesRequestStatus === 2}  onChange={() => this.setState({ wavesRequestStatus: 2  })}/>
-                    Reject
-                  </label>
-                  <button type="submit" onClick={this.changeStatusTest}>Change</button>
-              </div>
-          </div>
-
-          <div>
-              <h3>Ethereum SUSY validators</h3>
-              Reqest id: <input type="text" value={this.state.ethRequestId} onChange={(event) => this.setState({ ethRequestId: event.target.value })} />
-              <div className="radio">
-                  <label>
-                  <input type="radio" checked={this.state.ethRequestStatus === 3}  onChange={() => this.setState({ ethRequestStatus: 3 })}/>
-                    Accept
-                  </label>
-                   <label>
-                   <input type="radio" checked={this.state.ethRequestStatus === 2}  onChange={() => this.setState({ ethRequestStatus: 2  })}/>
-                    Reject
-                  </label>
-                  <button type="submit" onClick={this.changeEthStatusTest}>Change</button>
-              </div>
           </div>
         </div>
         </div>
