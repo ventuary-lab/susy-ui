@@ -326,7 +326,7 @@ class App extends Component {
     let amount = this.web3.utils.toWei(String(this.state.burnAmount, 'ether'))
     await this.ercContract.methods.approve(this.ethContractAddress, amount).send({from: this.state.dataOther.ethAccount})
     await this.contract.methods.createBurnRequest(this.state.burnRecipient, amount).send({from: this.state.dataOther.ethAccount})
-    await this.unlock(this.state.burnRecipient, this.state.burnAmount)
+    await this.unlock(this.state.dataOther.ethAccount, this.state.burnAmount)
   }
 
   async mint(owner, amount) {
